@@ -44,7 +44,7 @@ ENG1 Review Progress:
 - [ ] 4. Find ticket branch + open PR
 - [ ] 5. If stage exists: fetch, checkout, merge ticket branch (do not push)
 - [ ] 6. Run test instructions (automate; prompt for manual/login steps)
-- [ ] 7a. Fail → PR comments + new Rework; Code Review → To Do
+- [ ] 7a. Fail → reset stage to origin; PR comments + new Rework; Code Review → To Do
 - [ ] 7b. Pass → comment success; Code Review → Done; push stage if merged; ask to merge PR
 - [ ] 8. If other repos: comment this repo’s portion + handoff prompt
 ```
@@ -98,10 +98,11 @@ Run through the test instructions on the review target.
 1. Add comments to the pull request. Target specific lines of code if possible (`pull_request_review_write` method `create` with no event → `add_comment_to_pending_review` with `subjectType: LINE` → `submit_pending` with `REQUEST_CHANGES`). Otherwise a generic PR review comment is OK (`COMMENT` / `REQUEST_CHANGES` with a body).
 2. Always create a **new Rework** subtask on the parent (`createJiraIssue`). Description must refer back to the comments on the pull request (include the PR URL).
 3. Move the **Code Review** subtask back to **To Do**.
+4. If the ticket branch was merged into local `stage` (step 5), reset `stage` back to origin. Fetch, checkout `stage`, then `git reset --hard origin/stage`. **Do not push.** Skip this if there is no `stage` branch.
 
 It is acceptable to create a new **Rework** even if one already exists, as long as existing tasks are for a previous issue. There can be multiple rounds of rework for each parent ticket. Do not edit or reuse older **Rework** subtasks.
 
-If there is no open PR, comment the failures on the **Code Review** subtask instead, then still create **Rework** and move **Code Review** to **To Do**.
+If there is no open PR, comment the failures on the **Code Review** subtask instead, then still create **Rework**, move **Code Review** to **To Do**, and reset `stage` to origin if it was merged.
 
 ### 7b. Tests pass
 
@@ -131,7 +132,7 @@ Always create a **new** issue for the current review round. Earlier **Rework** /
 |------|--------|
 | Jira | `atlassianUserInfo`, `getAccessibleAtlassianResources`, `getJiraIssue`, `searchJiraIssuesUsingJql`, `editJiraIssue`, `getTransitionsForJiraIssue`, `transitionJiraIssue`, `createJiraIssue`, `addCommentToJiraIssue`, `getJiraProjectIssueTypesMetadata`, `getJiraIssueTypeMetaWithFields` |
 | Workspace | `move_agent_to_root` when the assigned repo is not the current workspace |
-| Git | fetch, checkout `stage`, merge ticket branch, abort on conflict, push `stage` only after tests pass |
+| Git | fetch, checkout `stage`, merge ticket branch, abort on conflict, reset `stage` to origin on test failure, push `stage` only after tests pass |
 | GitHub | Prefer MCP `search_pull_requests`, `pull_request_read`, `pull_request_review_write`, `add_comment_to_pending_review`, `merge_pull_request`; fallback `gh` |
 | Tests | Shell/HTTP where sufficient; `cursor-ide-browser` for UI steps; prompt the user for logins and other manual steps |
 
@@ -140,7 +141,7 @@ Always create a **new** issue for the current review round. Earlier **Rework** /
 - Do not skip the In Progress transition on the review target.
 - Do not push `stage` until tests pass. Never push a conflicted merge.
 - Merge conflict: hard stop — abort, **Code Review** → **To Do**, new **Resolve Merge Conflict**, stop.
-- Tests fail: PR comments, new **Rework**, **Code Review** → **To Do**.
+- Tests fail: PR comments, new **Rework**, **Code Review** → **To Do**, reset local `stage` to origin (do not push).
 - Tests pass: comment success on **Code Review**, mark **Done**, push `stage` if merged, then ask whether to merge the PR.
 - Always create a new **Resolve Merge Conflict** or **Rework** for the current round, even if the parent already has one. Do not reuse older tasks.
 - Stay on the assigned repo. For multi-repo tickets, hand off remaining tests with a copy-paste prompt.
